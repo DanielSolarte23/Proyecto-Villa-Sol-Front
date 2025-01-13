@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { LoadingOutlined, CloseOutlined } from '@ant-design/icons';
-import { Flex, Spin } from 'antd';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { Spin } from 'antd';
+
 
 function Page() {
   const [datos, setDatos] = useState([]);
@@ -12,6 +11,9 @@ function Page() {
   const [apartamentoSeleccionado, setApartamentoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
 
   useEffect(() => {
     cargarApartamentos();
@@ -26,7 +28,7 @@ function Page() {
         nroApto: apto.numeroDeApartamento,
         bloque: apto.bloque,
         metros: `${apto.metros} mts`,
-        propietario: apto.propietario?.name || 'Sin asignar',
+        propietario: apto.propietario?.nombre || 'Sin asignar',
         estado: apto.estado
       }));
       setDatos(apartamentosFormateados);
@@ -36,6 +38,57 @@ function Page() {
     } finally {
       setLoading(false);
     }
+  };
+
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = datos.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Calcular el número total de páginas
+  const totalPages = Math.ceil(datos.length / itemsPerPage);
+
+  // Función para cambiar de página
+  const paginate = (pageNumber) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  // Generar array de números de página para mostrar
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5; // Número máximo de páginas visibles
+
+    if (totalPages <= maxVisiblePages) {
+      // Si hay menos páginas que el máximo, mostrar todas
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Lógica para mostrar páginas con elipsis
+      if (currentPage <= 3) {
+        // Inicio de la lista
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        // Final de la lista
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        // Medio de la lista
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
   };
 
   const guardarCambios = async () => {
@@ -111,69 +164,115 @@ function Page() {
 
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-2">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-2 h-full">
       {/* Tabla Responsive */}
-      <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nro Apto
-                </th>
-                <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Bloque
-                </th>
-                <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Metros²
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Propietario
-                </th>
-                <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acción
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {datos.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center">
-                      <div className="sm:hidden font-medium mr-2 text-gray-500">Apto:</div>
-                      {item.nroApto}
-                    </div>
-                  </td>
-                  <td className="hidden sm:table-cell px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.bloque}
-                  </td>
-                  <td className="hidden md:table-cell px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.metros}
-                  </td>
-                  <td className="px-3 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center">
-                      <div className="sm:hidden font-medium mr-2 text-gray-500">Prop:</div>
-                      {item.propietario}
-                    </div>
-                  </td>
-                  <td className="hidden sm:table-cell px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.estado}
-                  </td>
-                  <td className="px-3 py-4 whitespace-nowrap text-right text-sm">
-                    <button
-                      onClick={() => abrirModal(item)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-3 rounded text-xs sm:text-sm"
-                    >
-                      <i className="fa-solid fa-pen"></i>
-                    </button>
-                  </td>
+      <div className="overflow-x-auto w-full h-full flex flex-col justify-between">
+        <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-200">
+                <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nro Apto
+                  </th>
+                  <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Bloque
+                  </th>
+                  <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Metros²
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Propietario
+                  </th>
+                  <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acción
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-[0.45rem] whitespace-nowrap text-sm">
+                      <div className="flex items-center">
+                        <div className="sm:hidden font-medium mr-2 text-gray-500">Apto:</div>
+                        {item.nroApto}
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell px-3 py-[0.45rem] whitespace-nowrap text-sm text-gray-500">
+                      {item.bloque}
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-[0.45rem] whitespace-nowrap text-sm text-gray-500">
+                      {item.metros}
+                    </td>
+                    <td className="px-3 py-[0.45rem] whitespace-nowrap text-sm">
+                      <div className="flex items-center">
+                        <div className="sm:hidden font-medium mr-2 text-gray-500">Prop:</div>
+                        {item.propietario}
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell px-3 py-[0.45rem] whitespace-nowrap text-sm text-gray-500">
+                      {item.estado}
+                    </td>
+                    <td className="px-3 py-[0.45rem] whitespace-nowrap text-right text-sm">
+                      <button
+                        onClick={() => abrirModal(item)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-3 rounded text-xs sm:text-sm"
+                      >
+                        <i className="fa-solid fa-pen"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Paginación */}
+        <div className="flex justify-center mt-4 space-x-1">
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === 1
+              ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
+              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {getPageNumbers().map((number, index) => (
+            <button
+              key={index}
+              onClick={() => number !== '...' ? paginate(number) : null}
+              className={`hidden sm:block px-4 py-1 rounded-md ${number === currentPage
+                ? 'bg-orange-500 text-white'
+                : number === '...'
+                  ? 'text-gray-700 cursor-default'
+                  : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+                }`}
+            >
+              {number}
+            </button>
+          ))}
+
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === totalPages
+              ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
+              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -199,6 +298,7 @@ function Page() {
                   </label>
                   <input
                     type="text"
+                    disabled
                     value={apartamentoSeleccionado?.nroApto || ""}
                     onChange={(e) =>
                       setApartamentoSeleccionado({
@@ -216,6 +316,7 @@ function Page() {
                   </label>
                   <input
                     type="text"
+                    disabled
                     value={apartamentoSeleccionado?.bloque || ""}
                     onChange={(e) =>
                       setApartamentoSeleccionado({
@@ -233,6 +334,7 @@ function Page() {
                   </label>
                   <input
                     type="text"
+                    disabled
                     value={apartamentoSeleccionado?.metros || ""}
                     onChange={(e) =>
                       setApartamentoSeleccionado({
@@ -298,6 +400,7 @@ function Page() {
         </div>
       )}
     </div>
+
   );
 }
 

@@ -1,104 +1,257 @@
 "use client"
 
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { LoadingOutlined, CloseOutlined } from '@ant-design/icons';
-import { Flex, Spin } from 'antd';
+import { Spin } from 'antd';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { usePago } from "@/app/context/PagoContext";
+import { usePropietarios } from "@/app/context/PropietarioContext";
+// import { logoImage } from '../../../../../public/images/VIlla_del_sol.png';
 
 
-function page() {
-  const [datos, setDatos] = useState([]);
+function PaymentPage() {
+  const {
+    pago,
+    loading,
+    error,
+    agregarPago,
+    actualizarPago,
+  } = usePago();
+
+  const { propietarios } = usePropietarios()
+
   const [modalVisible, setModalVisible] = useState(false);
   const [facturaVisible, setFacturaVisible] = useState(false);
   const [pagoSeleccionado, setPagoSeleccionado] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [nuevoPago, setNuevoPago] = useState({
+    monto: "",
+    estado: "",
+    propietarioId: "",
+  });
 
-  useEffect(() => {
-    cargarPagos();
-  }, []);
 
-  const cargarPagos = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('http://localhost:3004/api/pago');
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = pago.slice(indexOfFirstItem, indexOfLastItem);
 
-      const FormatoPagos = response.data.map(pago => ({
-        id: pago.id,
-        nombrePropietario: pago.propietario?.name,
-        numeroApto: pago.apartamento?.numeroDeApartamento,
-        monto: pago.monto,
-        // Guardamos tanto la fecha formateada para mostrar como la fecha original
-        vencimiento: new Date(pago.fechaVencimiento).toLocaleDateString('es-CO'),
-        fechaVencimientoOriginal: pago.fechaVencimiento,
-        estado: pago.estado,
-      }));
-      setDatos(FormatoPagos);
-    } catch (error) {
-      setError('Error al cargar los pagos');
-      console.error('Error', error);
-    } finally {
-      setLoading(false);
+  // Calcular el número total de páginas
+  const totalPages = Math.ceil(pago.length / itemsPerPage);
+
+  // Función para cambiar de página
+  const paginate = (pageNumber) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
     }
   };
 
-  const formatearFechaParaInput = (fecha) => {
-    if (!fecha) return '';
-    const date = new Date(fecha);
-    return date.toISOString().split('T')[0];
+  // Generar array de números de página para mostrar
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5; // Número máximo de páginas visibles
+
+    if (totalPages <= maxVisiblePages) {
+      // Si hay menos páginas que el máximo, mostrar todas
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Lógica para mostrar páginas con elipsis
+      if (currentPage <= 3) {
+        // Inicio de la lista
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        // Final de la lista
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        // Medio de la lista
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
   };
 
-  const guardarCambios = async () => {
-    try {
-      if (!pagoSeleccionado) return;
-
-      // Preparamos los datos para la actualización
-      const datosActualizados = {
-        monto: pagoSeleccionado.monto,
-        // Si la fecha no se modificó, usamos la fecha original
-        fechaVencimiento: pagoSeleccionado.nuevaFechaVencimiento || pagoSeleccionado.fechaVencimientoOriginal,
-        estado: pagoSeleccionado.estado
-      };
-
-      await axios.put(`http://localhost:3004/api/pago/${pagoSeleccionado.id}`, datosActualizados);
-
-      await cargarPagos();
-      cerrarModal();
-    } catch (error) {
-      console.error('Error al guardar', error);
-      alert('Error al guardar los cambios');
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNuevoPago(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const abrirModal = (pago) => {
-    setPagoSeleccionado({
-      ...pago,
-
-      fechaVencimientoOriginal: pago.fechaVencimientoOriginal
-    });
+    if (pago) {
+      setPagoSeleccionado(pago);
+      setNuevoPago({
+        monto: pago.monto,
+        estado: pago.estado,
+        propietarioId: pago.propietarioId,
+      });
+    } else {
+      setPagoSeleccionado(null);
+      setNuevoPago({
+        monto: "",
+        estado: "",
+        propietarioId: "",
+      });
+      console.log(propietarios);
+    }
     setModalVisible(true);
   };
-  const abrirfactura = (pago) => {
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const pagoParaEnviar = {
+        monto: nuevoPago.monto,
+        estado: nuevoPago.estado,
+        propietarioId: parseInt(nuevoPago.propietarioId)
+      };
+
+      if (pagoSeleccionado) {
+        await actualizarPago(pagoSeleccionado.id, pagoParaEnviar);
+      } else {
+        await agregarPago(pagoParaEnviar);
+      }
+
+      setModalVisible(false);
+      setPagoSeleccionado(null);
+      setNuevoPago({
+        monto: "",
+        estado: "",
+        propietarioId: "",
+      });
+    } catch (error) {
+      console.error("Error al guardar el pago:", error);
+    }
+  };
+
+  const abrirFactura = (pago) => {
     setPagoSeleccionado(pago);
     setFacturaVisible(true);
   };
 
   const cerrarModal = () => {
-    setPagoSeleccionado(null);
     setModalVisible(false);
+    setPagoSeleccionado(null);
+    setNuevoPago({
+      monto: "",
+      estado: "",
+      propietarioId: "",
+    });
   };
+
   const cerrarFactura = () => {
     setPagoSeleccionado(null);
     setFacturaVisible(false);
+  };
+
+  const generarPDF = () => {
+    if (!pagoSeleccionado) return;
+
+    const doc = new jsPDF();
+    doc.setFont('helvetica');
+
+    // Usar la URL pública directamente
+    const imgUrl = '/images/Villa_del_sol.png';
+    const img = new Image();
+    img.crossOrigin = "Anonymous"; // Importante para CORS
+
+    const addImageToPdf = () => {
+      return new Promise((resolve) => {
+        img.onload = () => {
+          resolve();
+        };
+        img.src = imgUrl;
+      });
+    };
+
+    const generatePdfWithImage = async () => {
+      try {
+        await addImageToPdf();
+        const pageWidth = doc.internal.pageSize.width;
+        const imgWidth = 50;
+        const imgHeight = 25;
+        const imgX = (pageWidth - imgWidth) / 2;
+        doc.addImage(img, 'PNG', imgX, 10, imgWidth, imgHeight);
+
+        // Encabezado centrado
+        doc.setFontSize(20);
+        doc.text('Factura de Administración', pageWidth / 2, 70, { align: 'center' });
+
+        // Subtítulo centrado
+        doc.setFontSize(12);
+        doc.text('Conjunto Residencial Villa del Sol', pageWidth / 2, 80, { align: 'center' });
+        doc.text('NIT: XXX-XXXXX', pageWidth / 2, 85, { align: 'center' });
+
+        // Detalles del pago
+        const startY = 100;
+        const leftMargin = 20;
+        const lineHeight = 7;
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Detalles del Pago:', leftMargin, startY);
+        doc.setFont('helvetica', 'normal');
+
+        doc.text(`Propietario: ${pagoSeleccionado.nombrePropietario}`, leftMargin, startY + lineHeight);
+        doc.text(`Apartamento: ${pagoSeleccionado.numeroApto}`, leftMargin, startY + (lineHeight * 2));
+        doc.text(`Monto: $${pagoSeleccionado.monto.toLocaleString()}`, leftMargin, startY + (lineHeight * 3));
+        doc.text(`Fecha de pago: ${pagoSeleccionado.vencimiento}`, leftMargin, startY + (lineHeight * 4));
+        doc.text(`Estado: ${pagoSeleccionado.estado}`, leftMargin, startY + (lineHeight * 5));
+
+
+        const desglose = [
+          ['Concepto', 'Valor'],
+          ['Administración', `$${pagoSeleccionado.monto.toLocaleString()}`],
+        ];
+
+        doc.autoTable({
+          startY: startY + (lineHeight * 7),
+          head: [['Concepto', 'Valor']],
+          body: desglose.slice(1),
+          theme: 'grid',
+          headStyles: { fillColor: [255, 128, 0] },
+          styles: {
+            halign: 'center',
+            fontSize: 12,
+          },
+          margin: { left: 20, right: 20 }, // Márgenes para centrar la tabla
+        });
+
+        // Pie de página centrado
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(10);
+        doc.text('Este documento es una representación digital de su factura.', pageWidth / 2, pageHeight - 30, { align: 'center' });
+        doc.text('Para cualquier consulta, por favor contacte a administración.', pageWidth / 2, pageHeight - 20, { align: 'center' });
+
+        // Guardar el PDF
+        const fileName = `Factura_${pagoSeleccionado.nombrePropietario}_${pagoSeleccionado.numeroApto}.pdf`;
+        doc.save(fileName);
+      } catch (error) {
+        console.error('Error generando PDF:', error);
+      }
+    };
+
+    generatePdfWithImage();
   };
 
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-full w-full gap-3">
         <Spin
-          tip="Loading"
           indicator={
             <LoadingOutlined
               style={{
@@ -114,140 +267,80 @@ function page() {
     );
   }
 
-
   if (error) {
     return (
       <div className="flex justify-center items-center h-full w-full">
         <div
-          className="flex flex-col justify-center items-center p-6 rounded-lg"
-          style={{
-            backgroundColor: 'rgb(249, 115, 22)',
-            color: 'white',
-            maxWidth: '300px',
-            textAlign: 'center',
-          }}
+          className="flex flex-col justify-center items-center p-6 rounded-lg bg-orange-500 text-white max-w-300"
         >
-          <CloseOutlined style={{ fontSize: 78, marginBottom: 16 }} /> {/* Ícono blanco */}
-          <div className="text-lg font-semibold">{error}</div> {/* Texto blanco */}
+          <CloseOutlined className="text-6xl mb-4" />
+          <div className="text-lg font-semibold">{error}</div>
         </div>
       </div>
     );
   }
 
-
-  const generarPDF = () => {
-    if (!pagoSeleccionado) return;
-
-    // Crear nuevo documento PDF
-    const doc = new jsPDF();
-
-    // Configurar fuente
-    doc.setFont('helvetica');
-
-    // Agregar título
-    doc.setFontSize(20);
-    doc.text('Factura de Administración', 105, 20, { align: 'center' });
-
-    // Agregar logo o encabezado (opcional)
-    doc.setFontSize(12);
-    doc.text('Edificio/Conjunto Residencial', 105, 30, { align: 'center' });
-    doc.text('NIT: XXX-XXXXX', 105, 35, { align: 'center' });
-
-    // Agregar información del pago
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-
-    // Sección de datos del propietario
-    const startY = 50;
-    const leftMargin = 20;
-    const lineHeight = 7;
-
-    doc.text('Detalles del Pago:', leftMargin, startY);
-    doc.setFont('helvetica', 'normal');
-
-    doc.text(`Propietario: ${pagoSeleccionado.nombrePropietario}`, leftMargin, startY + lineHeight);
-    doc.text(`Apartamento: ${pagoSeleccionado.numeroApto}`, leftMargin, startY + (lineHeight * 2));
-    doc.text(`Monto: $${pagoSeleccionado.monto.toLocaleString()}`, leftMargin, startY + (lineHeight * 3));
-    doc.text(`Fecha de Vencimiento: ${pagoSeleccionado.vencimiento}`, leftMargin, startY + (lineHeight * 4));
-    doc.text(`Estado: ${pagoSeleccionado.estado}`, leftMargin, startY + (lineHeight * 5));
-
-    // Agregar tabla de desglose (opcional)
-    const desglose = [
-      ['Concepto', 'Valor'],
-      ['Administración', `$${pagoSeleccionado.monto.toLocaleString()}`],
-      // Puedes agregar más conceptos si es necesario
-    ];
-
-    doc.autoTable({
-      startY: startY + (lineHeight * 7),
-      head: [['Concepto', 'Valor']],
-      body: desglose.slice(1),
-      theme: 'grid',
-      headStyles: { fillColor: [255, 128, 0] }, // Color naranja para el encabezado
-      styles: {
-        halign: 'center',
-        fontSize: 12
-      }
-    });
-
-    // Agregar pie de página
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(10);
-    doc.text('Este documento es una representación digital de su factura.', 105, pageHeight - 30, { align: 'center' });
-    doc.text('Para cualquier consulta, por favor contacte a administración.', 105, pageHeight - 20, { align: 'center' });
-
-    // Generar nombre del archivo
-    const fileName = `Factura_${pagoSeleccionado.nombrePropietario}_${pagoSeleccionado.numeroApto}.pdf`;
-
-    // Descargar el PDF
-    doc.save(fileName);
-  };
-
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-5">
-      {/* Tabla */}
-      <div className="w-full overflow-x-auto">
-        <div className="min-w-full rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 border shadow-lg">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-5 h-full">
+      <div className="h-[9%] flex items-center mb-4">
+        <button
+          onClick={() => abrirModal(null)}
+          className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+        >
+          + Agregar Pago
+        </button>
+      </div>
+
+      <div className="overflow-x-auto w-full h-[91%] flex flex-col justify-between">
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-full rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200 border">
               <thead className="bg-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nombre <br className="hidden sm:block" /> del propietario
+                    Nombre del propietario
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Número <br className="hidden sm:block" /> de apartamento
+                    Número de apartamento
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha de <br className="hidden sm:block" /> vencimiento
+                    Bloque
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs sm:text-sm text-center font-medium uppercase tracking-wider text-gray-500">Acción</th>
-                  <th className="px-2 py-2 sm:px-4 text-xs sm:text-sm text-center font-medium uppercase tracking-wider text-gray-500">Acción</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Monto
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha de Pago
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {datos.map((item) => (
-                  <tr key={item.id} className="bg-white divide-y divide-gray-200">
-                    <td className="px-2 py-2 sm:px-4 text-xs sm:text-sm whitespace-normal">{item.nombrePropietario}</td>
-                    <td className="px-2 py-2 sm:px-4 text-xs sm:text-sm whitespace-normal">{item.numeroApto}</td>
-                    <td className="px-2 py-2 sm:px-4 text-xs sm:text-sm whitespace-normal">{item.monto}</td>
-                    <td className="px-2 py-2 sm:px-4 text-xs sm:text-sm whitespace-normal">{item.vencimiento}</td>
-                    <td className="px-2 py-2 sm:px-4 text-xs sm:text-sm whitespace-normal">{item.estado}</td>
-                    <td className="px-2 py-2 sm:px-4 text-center">
+                {currentItems.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2 text-sm">{item.nombrePropietario}</td>
+                    <td className="px-4 py-2 text-sm">{item.numeroApto}</td>
+                    <td className="px-4 py-2 text-sm">{item.bloque}</td>
+                    <td className="px-4 py-2 text-sm">${item.monto.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm">{item.vencimiento}</td>
+                    <td className="px-4 py-2 text-sm capitalize">{item.estado}</td>
+                    <td className="px-4 py-2 text-sm text-center">
                       <button
-                        onClick={() => abrirfactura(item)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-bold py-1 px-2 sm:px-3 rounded"
+                        onClick={() => abrirFactura(item)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-1 px-3 rounded mr-2"
+                        aria-label="Ver factura"
                       >
                         <i className="fa-solid fa-magnifying-glass"></i>
                       </button>
-                    </td>
-                    <td className="px-2 py-2 sm:px-4 text-center">
                       <button
                         onClick={() => abrirModal(item)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-bold py-1 px-2 sm:px-3 rounded"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-1 px-3 rounded"
+                        aria-label="Editar pago"
                       >
                         <i className="fa-solid fa-pen"></i>
                       </button>
@@ -258,100 +351,187 @@ function page() {
             </table>
           </div>
         </div>
+        <div className="flex justify-center mt-4 space-x-1">
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === 1
+              ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
+              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {getPageNumbers().map((number, index) => (
+            <button
+              key={index}
+              onClick={() => number !== '...' ? paginate(number) : null}
+              className={`hidden sm:block px-4 py-1 rounded-md ${number === currentPage
+                ? 'bg-orange-500 text-white'
+                : number === '...'
+                  ? 'text-gray-700 cursor-default'
+                  : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+                }`}
+            >
+              {number}
+            </button>
+          ))}
+
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === totalPages
+              ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
+              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Modal */}
+
+
+      {/* Modal de Edición/Creación */}
       {modalVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto">
             <div className="p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold mb-4">Detalles pago de administración</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Nombre del propietario</label>
-                  <input
-                    type="text"
-                    value={pagoSeleccionado?.nombrePropietario || ""}
-                    disabled
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Numero de apartamento</label>
-                  <input
-                    type="text"
-                    value={pagoSeleccionado?.numeroApto || ""}
-                    disabled
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Monto</label>
-                  <input
-                    type="number"
-                    value={pagoSeleccionado?.monto || ""}
-                    onChange={(e) =>
-                      setPagoSeleccionado({ ...pagoSeleccionado, monto: e.target.value })
-                    }
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+              <h2 className="text-lg sm:text-xl font-bold mb-4">
+                {pagoSeleccionado ? "Editar Pago" : "Registrar Pago"}
+              </h2>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Fecha de vencimiento</label>
-                  <input
-                    type="date"
-                    value={formatearFechaParaInput(pagoSeleccionado?.fechaVencimientoOriginal)}
-                    onChange={(e) => {
-                      setPagoSeleccionado({
-                        ...pagoSeleccionado,
-                        nuevaFechaVencimiento: new Date(e.target.value).toISOString()
-                      });
-                    }}
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
-                </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {pagoSeleccionado ? <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nombre del propietario</label>
+                    <input
+                      type="text"
+                      name="nombrePropietario"
+                      value={pagoSeleccionado?.nombrePropietario || ""}
+                      disabled
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Numero de apartamento</label>
+                    <input
+                      type="text"
+                      name="numeroApto"
+                      value={pagoSeleccionado?.numeroApto || ""}
+                      disabled
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Estado</label>
-                  <select value={pagoSeleccionado?.estado || ""}
-                    onChange={(e) =>
-                      setPagoSeleccionado({
-                        ...pagoSeleccionado,
-                        estado: e.target.value,
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Monto</label>
+                    <input
+                      type="number"
+                      name="monto"
+                      value={nuevoPago?.monto || ""}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Fecha de Pago</label>
+                    <input
+                      type="text"
+                      name="vencimiento"
+                      value={pagoSeleccionado?.vencimiento || ""}
+                      disabled
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Estado</label>
+                    <select
+                      name="estado"
+                      value={nuevoPago?.estado || ""}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                    >
+                      <option value="">Seleccione un estado</option>
+                      <option value="pendiente">Pendiente</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </div>
+                </div> : <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nombre del propietario</label>
+                    <select
+                      name="propietarioId"
+                      value={nuevoPago.propietarioId}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      required
+                    >
+                      <option value="">Seleccione un propietario</option>
+                      {propietarios.map((propietario) => (
+                        <option key={propietario.id} value={propietario.id}>
+                          {propietario.Nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Monto</label>
+                    <input
+                      type="number"
+                      name="monto"
+                      value={nuevoPago?.monto || ""}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Estado</label>
+                    <select
+                      name="estado"
+                      value={nuevoPago?.estado || ""}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                    >
+                      <option value="">Seleccione un estado</option>
+                      <option value="pendiente">Pendiente</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </div>
+                </div>}
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={cerrarModal}
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-sm"
                   >
-                    <option value="">Seleccione un estado</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="cancelado">Cancelado</option>
-                  </select>
+                    X Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm"
+                  >
+                    Guardar
+                  </button>
                 </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  onClick={cerrarModal}
-                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-sm"
-                >
-                  X Cancelar
-                </button>
-                <button
-                  onClick={guardarCambios}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm"
-                >
-                  Guardar
-                </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>
       )}
 
-      {/* Factura Modal */}
-      {/* Factura Modal */}
       {facturaVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto">
@@ -401,4 +581,4 @@ function page() {
   );
 }
 
-export default page;
+export default PaymentPage;

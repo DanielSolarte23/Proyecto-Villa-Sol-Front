@@ -16,12 +16,12 @@ function TablaConModal() {
     cargo: "",
     motivo: "",
     descripcion: "",
-    estado: "no leido", // Cambiado para coincidir con el backend
+    estado: "no leido", 
   });
 
   useEffect(() => {
     cargarInformes(),
-      cargarUsuarios();
+      cargarUsuarios(); 
   }, []);
 
   const cargarUsuarios = async () => {
