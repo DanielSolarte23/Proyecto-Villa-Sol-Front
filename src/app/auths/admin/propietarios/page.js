@@ -3,17 +3,20 @@ import { usePropietarios } from '@/app/context/PropietarioContext';
 import React, { useState } from "react";
 import { LoadingOutlined, CloseOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
+import { useApartamentos } from '@/app/context/ApartamentosContext';
 
 function Page() {
   const {
     propietarios,
-    apartamentos,
+    // apartamentos,
     loading,
     error,
     agregarPropietario,
     actualizarPropietario,
     eliminarInforme,
   } = usePropietarios();
+
+  const { apartamentos } = useApartamentos()
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [datosSeleccionados, setDatosSeleccionados] = useState(null);
@@ -22,11 +25,10 @@ function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [nuevoPropietario, setNuevoPropietario] = useState({
-    nombre: "",
-    apartamento: "",
-    cedula: "",
-    telefono: "",
-    estadoPago: "pendiente",
+    Nombre: "",
+    Cedula: "",
+    Telefono: "",
+    Apartamento: "",
   });
 
 
@@ -81,7 +83,7 @@ function Page() {
     return pages;
   };
 
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNuevoPropietario(prev => ({
@@ -94,21 +96,20 @@ function Page() {
     if (propietario) {
       setDatosSeleccionados(propietario);
       setNuevoPropietario({
-        nombre: propietario.Nombre,
-        apartamento: propietario.Apartamento,
-        cedula: propietario.Cedula,
-        telefono: propietario.Telefono,
-        estadoPago: propietario.pago,
+        Nombre: propietario.Nombre,
+        Cedula: propietario.Cedula,
+        Telefono: propietario.Telefono,
+        Apartamento: propietario.apartamentoId // Usa directamente el ID del apartamento
       });
       console.log(propietario);
+      
     } else {
       setDatosSeleccionados(null);
       setNuevoPropietario({
-        nombre: "",
-        apartamento: "",
-        cedula: "",
-        telefono: "",
-        estadoPago: "pendiente",
+        Nombre: "",
+        Cedula: "",
+        Telefono: "",
+        Apartamento: "",
       });
     }
     setIsModalOpen(true);
@@ -118,11 +119,12 @@ function Page() {
     e.preventDefault();
 
     const datosParaEnviar = {
-      nombre: nuevoPropietario.nombre,
-      cedula: nuevoPropietario.cedula,
-      telefono: nuevoPropietario.telefono,
-      apartamentoId: apartamentos.find(apt => apt.numeroDeApartamento === nuevoPropietario.apartamento)?.id
+      nombre: nuevoPropietario.Nombre,
+      cedula: nuevoPropietario.Cedula,
+      telefono: nuevoPropietario.Telefono,
+      apartamentoId: nuevoPropietario.Apartamento
     };
+    console.log(`Estos son los datos que esta envaindo ${datosParaEnviar}`);
 
     if (datosSeleccionados) {
       await actualizarPropietario(datosSeleccionados.id, datosParaEnviar);
@@ -133,11 +135,10 @@ function Page() {
     setIsModalOpen(false);
     setDatosSeleccionados(null);
     setNuevoPropietario({
-      nombre: "",
-      apartamento: "",
-      cedula: "",
-      telefono: "",
-      estadoPago: "pendiente",
+      Nombre: "",
+      Cedula: "",
+      Telefono: "",
+      Apartamento: "",
     });
   };
 
@@ -145,11 +146,10 @@ function Page() {
     setIsModalOpen(false);
     setDatosSeleccionados(null);
     setNuevoPropietario({
-      nombre: "",
-      apartamento: "",
-      cedula: "",
-      telefono: "",
-      estadoPago: "pendiente",
+      Nombre: "",
+      Cedula: "",
+      Telefono: "",
+      Apartamento: "",
     });
   };
 
@@ -161,13 +161,13 @@ function Page() {
             <LoadingOutlined
               style={{
                 fontSize: 78,
-                color: 'rgb(249, 115, 22)',
+                color: '#d80909',
               }}
               spin
             />
           }
         />
-        <p className="text-orange-600">Cargando Propietarios...</p>
+        <p className="text-rojo">Cargando Propietarios...</p>
       </div>
     );
   }
@@ -178,7 +178,7 @@ function Page() {
         <div
           className="flex flex-col justify-center items-center p-6 rounded-lg"
           style={{
-            backgroundColor: 'rgb(249, 115, 22)',
+            backgroundColor: '#d80909',
             color: 'white',
             maxWidth: '300px',
             textAlign: 'center',
@@ -202,87 +202,98 @@ function Page() {
   };
 
 
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-2 h-full ">
-      <div className='h-[9%] flex items-center'>
+    <div className="mx-auto px-4 sm:px-6 lg:px-2 py-2 h-full ">
+      <div className="flex justify-between items-center h-[5%] w-full pt-2 2xl:pt-0">
         <button
           onClick={() => abrirModal(null)}
-          className="px-3 py-2 sm:px-4 sm:py-2 bg-orange-500 text-white text-sm sm:text-base rounded-md hover:bg-orange-600 transition-colors"
+          className="px-3 py-2 sm:px-4 sm:py-2 bg-rojo text-white text-sm sm:text-base rounded-md hover:bg-zinc-800 transition-colors"
         >
-          + Agregar un nuevo usuario
+          + Agregar un nuevo propietario
         </button>
+        <div className=" relative  w-full md:w-1/3 flex items-center">
+          <i className="fa-solid left-3 text-zinc-400 absolute fa-magnifying-glass"></i>
+          <input
+            type="text"
+            placeholder="Buscar propietarios..."
+            // value={searchQuery}
+            // onChange={handleSearchChange}
+            className="px-3 pl-10 py-2 border border-zinc-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-rojo"
+          />
+        </div>
       </div>
-      <div className="overflow-x-auto w-full h-[91%] flex flex-col justify-between">
-        <div className="mt-4 bg-white rounded-lg shadow-lg">
+      <div className="overflow-x-auto w-full h-[95%] flex flex-col justify-between">
+        <div className="mt-4 2xl:mt-2 bg-white rounded-lg shadow-lg">
           <div className="overflow-x-auto rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-200">
+              <thead className="bg-zinc-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Nombre
                   </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden sm:table-cell px-4 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
                     Bloque
                   </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider ">
+                  <th className="hidden sm:table-cell px-4 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider ">
                     Apartamento
                   </th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden md:table-cell px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Cedula
                   </th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden lg:table-cell px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Telefono
                   </th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden lg:table-cell px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Estado Pago
                   </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden sm:table-cell px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Fecha Registro
                   </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Accion
+                  <th className="px-4 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
+                    Editar
                   </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Accion
+                  <th className="px-4 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
+                    Eliminar
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-4 py-0.45 2xl:py-1.20 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{item.Nombre}</div>
                     </td>
-                    <td className="hidden sm:table-cell px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                    <td className="hidden sm:table-cell px-4 py-0.45 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500 text-center">
                       {item.bloque}
                     </td>
-                    <td className="hidden sm:table-cell px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                    <td className="hidden sm:table-cell px-4 py-0.45 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500 text-center">
                       {item.Apartamento}
                     </td>
-                    <td className="hidden md:table-cell px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden md:table-cell px-4 py-0.45 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.Cedula}
                     </td>
-                    <td className="hidden lg:table-cell px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden lg:table-cell px-4 py-0.45 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.Telefono}
                     </td>
-                    <td className="hidden lg:table-cell px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden lg:table-cell px-4 py-0.45 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.pago}
                     </td>
-                    <td className="hidden sm:table-cell px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden sm:table-cell px-4 py-0.45 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.FechaRegistro}
                     </td>
-                    <td className="p-2 text-center">
+                    <td className="px-2 py-0.45 2xl:py-1.20 text-center">
                       <button
                         onClick={() => abrirModal(item)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white p-1 sm:py-1 sm:px-3 rounded text-xs sm:text-sm"
+                        className="bg-rojo hover:bg-zinc-800 text-white p-1 sm:py-1 sm:px-3 rounded text-xs sm:text-sm"
                       >
                         <i className="fa-solid fa-pen"></i>
                       </button>
                     </td>
-                    <td className="p-2 text-center">
+                    <td className="px-2 text-center py-0.45 2xl:py-1.20">
                       <button
                         onClick={() => handleEliminar(item.id)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white p-1 sm:py-1 sm:px-3 rounded text-xs sm:text-sm"
+                        className="bg-rojo hover:bg-zinc-800 text-white p-1 sm:py-1 sm:px-3 rounded text-xs sm:text-sm"
                       >
                         <i className="fa-solid fa-trash"></i>
                       </button>
@@ -293,13 +304,13 @@ function Page() {
             </table>
           </div>
         </div>
-        <div className="flex justify-center mt-4 space-x-1">
+        <div className="flex justify-center space-x-1">
           <button
             onClick={() => paginate(currentPage - 1)}
             disabled={currentPage === 1}
             className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === 1
               ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
-              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              : 'text-gray-700 bg-white hover:bg-zinc-800 hover:text-white transition-colors duration-300'
               }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -312,10 +323,10 @@ function Page() {
               key={index}
               onClick={() => number !== '...' ? paginate(number) : null}
               className={`hidden sm:block px-4 py-1 rounded-md ${number === currentPage
-                ? 'bg-orange-500 text-white'
+                ? 'bg-rojo text-white'
                 : number === '...'
                   ? 'text-gray-700 cursor-default'
-                  : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+                  : 'text-gray-700 bg-white hover:bg-zinc-800 hover:text-white transition-colors duration-300'
                 }`}
             >
               {number}
@@ -348,51 +359,56 @@ function Page() {
               </h2>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="nombre" className="text-sm font-medium text-gray-700">Nombre completo</label>
+                  <label htmlFor="Nombre" className="text-sm font-medium text-gray-700">Nombre completo</label>
                   <input
                     type="text"
-                    name="nombre"
+                    name="Nombre"
                     placeholder="Nombres"
-                    value={nuevoPropietario.nombre}
+                    value={nuevoPropietario.Nombre}
                     onChange={handleInputChange}
                     className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="cedula" className="text-sm font-medium text-gray-700">Documento de identidad</label>
+                  <label htmlFor="Cedula" className="text-sm font-medium text-gray-700">Documento de identidad</label>
                   <input
-                    name="cedula"
+                    name="Cedula"
                     placeholder="Cedula"
-                    value={nuevoPropietario.cedula}
+                    value={nuevoPropietario.Cedula}
                     onChange={handleInputChange}
                     className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="apartamento" className="text-sm font-medium text-gray-700">Apartamento</label>
+                  <label htmlFor="Apartamento" className="text-sm font-medium text-gray-700">Apartamento</label>
                   <select
-                    name="apartamento"
-                    value={nuevoPropietario.apartamento}
+                    name="Apartamento"
+                    value={nuevoPropietario.Apartamento}
                     onChange={handleInputChange}
                     className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required
                   >
                     <option value="">Seleccione un apartamento</option>
                     {apartamentos.map((item) => (
-                      <option key={item.id} value={item.numeroDeApartamento}>
-                        bloque: {item.bloque} apartamento: {item.numeroDeApartamento}
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        // Puedes agregar esto para debug
+                        // selected={item.id === nuevoPropietario.Apartamento}
+                      >
+                        bloque: {item.bloque} apartamento: {item.nroApto}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="telefono" className="text-sm font-medium text-gray-700">Telefono</label>
+                  <label htmlFor="Telefono" className="text-sm font-medium text-gray-700">Telefono</label>
                   <input
-                    name="telefono"
+                    name="Telefono"
                     placeholder="Teléfono"
-                    value={nuevoPropietario.telefono}
+                    value={nuevoPropietario.Telefono}
                     onChange={handleInputChange}
                     className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                     required

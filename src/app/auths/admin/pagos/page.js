@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { usePago } from "@/app/context/PagoContext";
 import { usePropietarios } from "@/app/context/PropietarioContext";
-// import { logoImage } from '../../../../../public/images/VIlla_del_sol.png';
+
 
 
 function PaymentPage() {
@@ -106,7 +106,7 @@ function PaymentPage() {
         estado: "",
         propietarioId: "",
       });
-      console.log(propietarios);
+      // console.log(propietarios);
     }
     setModalVisible(true);
   };
@@ -262,7 +262,7 @@ function PaymentPage() {
             />
           }
         />
-        <p className="text-orange-600">Cargando Pagos...</p>
+        <p className="text-rojo">Cargando Pagos...</p>
       </div>
     );
   }
@@ -271,7 +271,7 @@ function PaymentPage() {
     return (
       <div className="flex justify-center items-center h-full w-full">
         <div
-          className="flex flex-col justify-center items-center p-6 rounded-lg bg-orange-500 text-white max-w-300"
+          className="flex flex-col justify-center items-center p-6 rounded-lg bg-rojo text-white max-w-300"
         >
           <CloseOutlined className="text-6xl mb-4" />
           <div className="text-lg font-semibold">{error}</div>
@@ -280,69 +280,85 @@ function PaymentPage() {
     );
   }
 
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-5 h-full">
-      <div className="h-[9%] flex items-center mb-4">
+    <div className="mx-auto px-4 sm:px-6 lg:px-2 py-2 h-full">
+      <div className="flex justify-between items-center h-[5%] w-full pt-2 2xl:pt-0">
         <button
           onClick={() => abrirModal(null)}
-          className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+          className="px-4 py-2 bg-rojo text-white rounded-md hover:bg-rojo transition-colors"
         >
           + Agregar Pago
         </button>
+        <div className=" relative  w-full md:w-1/3 flex items-center">
+          <i className="fa-solid left-3 text-zinc-400 absolute fa-magnifying-glass"></i>
+          <input
+            type="text"
+            placeholder="Buscar pagos..."
+            // value={searchQuery}
+            // onChange={handleSearchChange}
+            className="px-3 pl-10 py-2 border border-zinc-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-rojo"
+          />
+        </div>
       </div>
 
-      <div className="overflow-x-auto w-full h-[91%] flex flex-col justify-between">
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-full rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 border">
-              <thead className="bg-gray-200">
+      <div className="overflow-x-auto w-full h-[95%] flex flex-col justify-between">
+        <div className="mt-4 2xl:mt-2 w-full overflow-x-auto rounded-lg shadow-xl">
+          <div className="min-w-full rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-zinc-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Nombre del propietario
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Número de apartamento
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Bloque
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Monto
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Fecha de Pago
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
+                  <th className="px-4 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
+                    Editar
+                  </th>
+                  <th className="px-4 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
+                    Detalles
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentItems.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-2 text-sm">{item.nombrePropietario}</td>
-                    <td className="px-4 py-2 text-sm">{item.numeroApto}</td>
-                    <td className="px-4 py-2 text-sm">{item.bloque}</td>
-                    <td className="px-4 py-2 text-sm">${item.monto.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm">{item.vencimiento}</td>
-                    <td className="px-4 py-2 text-sm capitalize">{item.estado}</td>
-                    <td className="px-4 py-2 text-sm text-center">
-                      <button
-                        onClick={() => abrirFactura(item)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-1 px-3 rounded mr-2"
-                        aria-label="Ver factura"
-                      >
-                        <i className="fa-solid fa-magnifying-glass"></i>
-                      </button>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm font-medium">{item.nombrePropietario}</td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-gray-500">{item.numeroApto}</td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-gray-500">{item.bloque}</td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-gray-500">${item.monto.toLocaleString()}</td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-gray-500">{item.vencimiento}</td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-gray-500 capitalize">{item.estado}</td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-gray-500 text-center">
                       <button
                         onClick={() => abrirModal(item)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-1 px-3 rounded"
+                        className="bg-rojo hover:bg-zinc-800 text-white font-bold py-1 px-3 rounded"
                         aria-label="Editar pago"
                       >
                         <i className="fa-solid fa-pen"></i>
+                      </button>
+                    </td>
+                    <td className="px-4 py-0.45 2xl:py-1.20 text-sm text-center">
+                      <button
+                        onClick={() => abrirFactura(item)}
+                        className="bg-rojo hover:bg-zinc-800 text-white font-bold py-1 px-3 rounded mr-2"
+                        aria-label="Ver factura"
+                      >
+                        <i className="fa-solid fa-magnifying-glass"></i>
                       </button>
                     </td>
                   </tr>
@@ -357,7 +373,7 @@ function PaymentPage() {
             disabled={currentPage === 1}
             className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === 1
               ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
-              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              : 'text-gray-700 bg-white hover:bg-zinc-800 hover:text-white transition-colors duration-300'
               }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -370,10 +386,10 @@ function PaymentPage() {
               key={index}
               onClick={() => number !== '...' ? paginate(number) : null}
               className={`hidden sm:block px-4 py-1 rounded-md ${number === currentPage
-                ? 'bg-orange-500 text-white'
+                ? 'bg-rojo text-white'
                 : number === '...'
                   ? 'text-gray-700 cursor-default'
-                  : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+                  : 'text-gray-700 bg-white hover:bg-zinc-800 hover:text-white transition-colors duration-300'
                 }`}
             >
               {number}
@@ -385,7 +401,7 @@ function PaymentPage() {
             disabled={currentPage === totalPages}
             className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === totalPages
               ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
-              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
+              : 'text-gray-700 bg-white hover:bg-rojo hover:text-white transition-colors duration-300'
               }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -459,7 +475,7 @@ function PaymentPage() {
                       name="estado"
                       value={nuevoPago?.estado || ""}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                      className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-rojo focus:border-rojo"
                     >
                       <option value="">Seleccione un estado</option>
                       <option value="pendiente">Pendiente</option>
@@ -502,7 +518,7 @@ function PaymentPage() {
                       name="estado"
                       value={nuevoPago?.estado || ""}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                      className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-rojo focus:border-rojo"
                     >
                       <option value="">Seleccione un estado</option>
                       <option value="pendiente">Pendiente</option>
@@ -562,7 +578,7 @@ function PaymentPage() {
               <div className="flex justify-end gap-2 mt-6">
                 <button
                   onClick={cerrarFactura}
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded text-sm"
+                  className="bg-rojo hover:bg-rojo text-white font-bold py-2 px-4 rounded text-sm"
                 >
                   X Cerrar
                 </button>

@@ -1,6 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useMemo } from "react";
 import { LoadingOutlined, CloseOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import { useApartamentos } from "@/app/context/ApartamentosContext";
@@ -13,6 +12,7 @@ function Page() {
     loading,
     error, actualizarApartamento } = useApartamentos();
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [apartamentoSeleccionado, setApartamentoSeleccionado] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,10 +28,7 @@ function Page() {
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = apartamentos.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Calcular el número total de páginas
-  const totalPages = Math.ceil(apartamentos.length / itemsPerPage);
 
   // Función para cambiar de página
   const paginate = (pageNumber) => {
@@ -40,18 +37,32 @@ function Page() {
     }
   };
 
-  // Generar array de números de página para mostrar
+  const filteredApartamentos = useMemo(() => {
+    if (!searchQuery) return apartamentos;
+
+    const lowercaseQuery = searchQuery.toLowerCase().trim();
+
+    return apartamentos.filter(apto =>
+      apto.nroApto.toLowerCase().includes(lowercaseQuery) ||
+      apto.bloque.toLowerCase().includes(lowercaseQuery) ||
+      apto.propietario.toLowerCase().includes(lowercaseQuery) ||
+      apto.metros.toLowerCase().includes(lowercaseQuery) ||
+      apto.estado.toLowerCase().includes(lowercaseQuery)
+    );
+  }, [apartamentos, searchQuery]);
+
+  const currentItems = filteredApartamentos.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredApartamentos.length / itemsPerPage);
+
   const getPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5; // Número máximo de páginas visibles
+    const maxVisiblePages = 5;
 
     if (totalPages <= maxVisiblePages) {
-      // Si hay menos páginas que el máximo, mostrar todas
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Lógica para mostrar páginas con elipsis
       if (currentPage <= 3) {
         // Inicio de la lista
         for (let i = 1; i <= 4; i++) pages.push(i);
@@ -63,7 +74,6 @@ function Page() {
         pages.push('...');
         for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
       } else {
-        // Medio de la lista
         pages.push(1);
         pages.push('...');
         pages.push(currentPage - 1);
@@ -74,6 +84,11 @@ function Page() {
       }
     }
     return pages;
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
   const handleInputChange = (e) => {
@@ -100,7 +115,6 @@ function Page() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Extraer solo el número de metros (eliminar "mts")
     const metrosNumero = nuevoApartamento.metros.split(' ')[0];
 
     const datosParaEnviar = {
@@ -184,12 +198,25 @@ function Page() {
     );
   }
 
- 
+
   return (
     <div className="2xl:w-full mx-auto px-4 sm:px-6 lg:px-2 py-2 h-full">
+      {/* Search Input */}
+      <div className='flex justify-end items-center h-[5%] w-full pt-2 2xl:pt-0'>
+        <div className=" relative  w-full md:w-1/3 flex items-center">
+          <i className="fa-solid left-3 text-zinc-400 absolute fa-magnifying-glass"></i>
+          <input
+            type="text"
+            placeholder="Buscar apartamentos..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="px-3 pl-10 py-2 border border-zinc-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-rojo"
+          />
+        </div>
+      </div>
       {/* Tabla Responsive */}
-      <div className="overflow-x-auto w-full h-full flex flex-col justify-between">
-        <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
+      <div className="overflow-x-auto w-full h-[95%] flex flex-col justify-between">
+        <div className="mt-4 2xl:mt-3 bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead className="bg-zinc-800">
@@ -209,39 +236,39 @@ function Page() {
                   <th className="hidden sm:table-cell px-3 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-3 py-3 2xl:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
-                    Editar
+                  <th className="px-3 py-3 2xl:py-4 text-right text-xs font-medium text-white uppercase tracking-wider">
+                    Acción
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-[0.45rem] 2xl:py-1.20 whitespace-nowrap text-sm 2xl:text-base">
-                      <div className="flex items-center ">
-                        <div className="hidden sm:block font-medium mr-2 ">Apto:</div>
+                    <td className="px-3 xl:py-0.90 2xl:py-1.20 whitespace-nowrap text-sm">
+                      <div className="flex items-center">
+                        <div className="hidden sm:block font-medium mr-2 text-gray-500">Apto:</div>
                         {item.nroApto}
                       </div>
                     </td>
-                    <td className="hidden sm:table-cell px-3 py-[0.45rem] 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden sm:table-cell px-3 xl:py-0.90 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.bloque}
                     </td>
-                    <td className="hidden md:table-cell px-3 py-[0.45rem] 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden md:table-cell px-3 xl:py-0.90 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.metros}
                     </td>
-                    <td className="px-3 py-[0.45rem] 2xl:py-1.20 whitespace-nowrap text-sm">
-                      <div className="flex items-center text-gray-500">
-                      
+                    <td className="px-3 xl:py-0.90 2xl:py-1.20 whitespace-nowrap text-sm">
+                      <div className="flex items-center">
+                        <div className="sm:hidden font-medium mr-2 text-gray-500">Prop:</div>
                         {item.propietario}
                       </div>
                     </td>
-                    <td className="hidden sm:table-cell px-3 py-[0.45rem] 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden sm:table-cell px-3 xl:py-0.90 2xl:py-1.20 whitespace-nowrap text-sm text-gray-500">
                       {item.estado}
                     </td>
-                    <td className="px-3 py-[0.45rem] 2xl:py-1.20 whitespace-nowrap text-center text-sm">
+                    <td className="px-3 xl:py-0.90 2xl:py-1.20 whitespace-nowrap text-right text-sm">
                       <button
                         onClick={() => abrirModal(item)}
-                        className="bg-rojo hover:bg-zinc-800 text-white py-1 px-3 rounded text-xs sm:text-sm"
+                        className="bg-rojo hover:bg-zinc-500 text-white py-1 px-3 rounded text-xs sm:text-sm"
                       >
                         <i className="fa-solid fa-pen"></i>
                       </button>
@@ -288,7 +315,7 @@ function Page() {
             disabled={currentPage === totalPages}
             className={`flex items-center justify-center px-4 py-1 rounded-md ${currentPage === totalPages
               ? 'text-gray-500 bg-gray-100 cursor-not-allowed'
-              : 'text-gray-700 bg-white hover:bg-rojo hover:text-white transition-colors duration-300'
+              : 'text-gray-700 bg-white hover:bg-orange-500 hover:text-white transition-colors duration-300'
               }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">

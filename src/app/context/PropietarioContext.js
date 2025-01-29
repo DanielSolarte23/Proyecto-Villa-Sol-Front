@@ -7,7 +7,6 @@ const PropietariosContext = createContext();
 
 export function PropietariosProvider({ children }) {
   const [propietarios, setPropietarios] = useState([]);
-  const [apartamentos, setApartamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -20,33 +19,19 @@ export function PropietariosProvider({ children }) {
         Nombre: propietario.nombre,
         bloque: propietario.apartamentoBloque,
         Apartamento: propietario.apartamentoNumero,
+        apartamentoId: propietario.apartamentoId,
         Cedula: propietario.cedula,
         Telefono: propietario.telefono,
         pago: propietario.estadoPago,
         FechaRegistro: new Date(propietario.propietarioCreado).toLocaleDateString('es-CO'),
       }));
-
+  
       setPropietarios(propietariosFormateados);
     } catch (error) {
       setError('Error al cargar los propietarios');
       console.error('Error:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const cargarApartamentos = async () => {
-    try {
-      const response = await axios.get('http://localhost:3004/api/apartamentos');
-      const apartamentosDisponibles = response.data.map(apartamento => ({
-        id: apartamento.id,
-        numeroDeApartamento: apartamento.numeroDeApartamento,
-        bloque: apartamento.bloque,
-      }));
-      setApartamentos(apartamentosDisponibles);
-    } catch (error) {
-      setError('Error al cargar los apartamentos');
-      console.error('Error:', error);
     }
   };
 
@@ -60,7 +45,6 @@ export function PropietariosProvider({ children }) {
         apartamentoId: nuevoPropietario.apartamentoId
       });
       await cargarPropietarios();
-      await cargarApartamentos();
       return { success: true, data: response.data };
     } catch (error) {
       setError(error.response?.data?.error || 'Error al agregar el propietario');
@@ -94,7 +78,7 @@ export function PropietariosProvider({ children }) {
       await cargarPropietarios();
       // setMostrarModalConfirmacion(false);
     } catch (error) {
-      setError("Ocurrió un error al eliminar el informe.");
+      setError("Ocurrió un error al eliminar el Propietario.");
       console.error("Error deleting report:", error);
     } finally {
       setLoading(false);
@@ -104,16 +88,12 @@ export function PropietariosProvider({ children }) {
 
   useEffect(() => {
     cargarPropietarios();
-    cargarApartamentos();
   }, []);
 
   const value = {
     propietarios,
-    apartamentos,
     loading,
     error,
-    cargarPropietarios,
-    cargarApartamentos,
     agregarPropietario,
     actualizarPropietario,
     eliminarInforme,

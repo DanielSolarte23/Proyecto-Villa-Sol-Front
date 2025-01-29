@@ -1,15 +1,12 @@
 "use client";
 import Header from "@/app/components/Header";
-import BarraLateral from "@/app/components/BarraLateral";
+import BarraLateralSeguridad from "@/app/components/BarraLateralSeguridad";
 import { useState } from "react";
 import { PropietariosProvider } from '@/app/context/PropietarioContext';
-import { PagoProvider } from '@/app/context/PagoContext';
-import { UserProvider } from "@/app/context/UserContext";
 import { ApartamentoProvider } from "@/app/context/ApartamentosContext";
 import { VisitaProvider } from "@/app/context/VisitaContext";
-import { InformesProvider } from "@/app/context/InformesContext";
 
-export default function AdminLayout({ children }) {
+export default function SeguridadLayout({ children }) {
     const [isVisible, setIsVisible] = useState(false);
 
     const toggleVisible = () => {
@@ -28,26 +25,20 @@ export default function AdminLayout({ children }) {
                     className={`absolute md:w-1/5 top-0 left-0 h-full transform transition-transform md:relative md:translate-x-0 ${isVisible ? "translate-x-0" : "-translate-x-full"
                         }`}
                 >
-                    <BarraLateral />
+                    <BarraLateralSeguridad />
                 </div>
 
                 {/* Contenedor principal */}
                 <div className="flex-1 h-full">
                     <ApartamentoProvider>
                         <PropietariosProvider>
-                            <PagoProvider>
-                                <VisitaProvider>
-                                    <InformesProvider>
-                                        <UserProvider>
-                                            {children}
-                                        </UserProvider>
-                                    </InformesProvider>
-                                </VisitaProvider>
-                            </PagoProvider>
+                            <VisitaProvider>
+                                {children}
+                            </VisitaProvider>
                         </PropietariosProvider>
                     </ApartamentoProvider>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }
