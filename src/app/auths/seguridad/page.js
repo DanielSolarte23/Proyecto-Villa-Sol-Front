@@ -216,7 +216,7 @@ function Page() {
       </div>
       {/* Tabla Responsive */}
       <div className="overflow-x-auto w-full h-[95%] flex flex-col justify-between">
-        <div className="mt-4 2xl:mt-3 bg-white rounded-lg shadow overflow-hidden">
+        <div className="mt-4 2xl:mt-2 bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead className="bg-zinc-800">

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { PropietariosProvider } from '@/app/context/PropietarioContext';
 import { ApartamentoProvider } from "@/app/context/ApartamentosContext";
 import { VisitaProvider } from "@/app/context/VisitaContext";
+import { InformesProvider } from "@/app/context/InformesContext";
+import { UserProvider } from "@/app/context/UserContext";
 
 export default function SeguridadLayout({ children }) {
     const [isVisible, setIsVisible] = useState(false);
@@ -33,7 +35,11 @@ export default function SeguridadLayout({ children }) {
                     <ApartamentoProvider>
                         <PropietariosProvider>
                             <VisitaProvider>
-                                {children}
+                                <InformesProvider>
+                                    <UserProvider>
+                                        {children}
+                                    </UserProvider>
+                                </InformesProvider>
                             </VisitaProvider>
                         </PropietariosProvider>
                     </ApartamentoProvider>

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { authContext } from "./authContext";
 
 const InformesContext = createContext();
 
@@ -9,6 +10,8 @@ export function InformesProvider({ children }) {
     const [informes, setInformes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { user } = useContext(authContext);
+    const [informesId, setInformesId] = useState([]);
 
     const cargarInformes = async () => {
         setLoading(true);
@@ -56,6 +59,7 @@ export function InformesProvider({ children }) {
             });
 
             await cargarInformes()
+            await cargarInformesId(nuevoInforme.remitenteId);
             return { success: true, data: response.data };
         } catch (error) {
             setError(error.response?.data?.error || "Error al agregar el informe");
@@ -97,12 +101,53 @@ export function InformesProvider({ children }) {
         }
     }
 
+    const cargarInformesId = async (id) => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const response = await axios.get(`http://localhost:3004/api/remitente/${id}`);
+            const informesFormateados = response.data.map((informe) => ({
+                id: informe.id,
+                remitenteName: informe.remitente?.name || '',
+                remitenteRole: informe.remitente?.role,
+                motivo: informe.motivo,
+                descripcion: informe.descripcion,
+                estado: informe.estado,
+                fechaRegistro: informe.createdAt ? new Date(informe.createdAt) : null,
+            })).sort((a, b) => {
+                if (a.fechaRegistro && b.fechaRegistro) {
+                    return b.fechaRegistro - a.fechaRegistro;
+                }
+                return a.fechaRegistro ? -1 : 1;
+            });
+
+            const informesConFormato = informesFormateados.map(informe => ({
+                ...informe,
+                fechaRegistro: informe.fechaRegistro ? informe.fechaRegistro.toLocaleString('es-CO') : 'Sin registro',
+            }));
+
+            setInformesId(informesConFormato);
+        } catch (error) {
+            setError("Ocurrió un error al cargar los informes.");
+            console.error("Error loading reports:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            cargarInformesId(user.id);
+        }
+    }, [user, informes]);
+
     useEffect(() => {
         cargarInformes();
     }, []);
 
     const value = {
         informes,
+        informesId,
         loading,
         error,
         agregarInforme,
@@ -126,13 +171,4 @@ export function useInformes() {
     return context;
 }
 
-
-
-// const informe = {
-//     "cargo": "Seguridad",
-//     "motivo": "Reporte",
-//     "descripcion": "El dia de hoy estoy probando el api",
-//     "estado": "leido",
-//     "remitenteId": null,
-// }
 

@@ -45,7 +45,7 @@ export function VisitaProvider({ children }) {
             }));    
 
             setVisitas(visitasConFormato); 
-            console.log(visitasConFormato);
+            // console.log(visitasConFormato);
             // Actualizar el estado con los datos ordenados y formateados
         } catch (error) {
             setError('Error al cargar los Visitantes');

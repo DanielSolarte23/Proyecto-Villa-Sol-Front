@@ -251,7 +251,7 @@ function Page() {
         </div>
       </div>
       <div className="overflow-x-auto w-full h-[95%] flex flex-col justify-between">
-        <div className="mt-4 bg-white rounded-lg shadow">
+        <div className="mt-4 2xl:mt-2 bg-white rounded-lg shadow">
           <div className="overflow-x-auto rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
@@ -274,8 +274,8 @@ function Page() {
                   <th className="px-3 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-4 py-3 2xl:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">
-                    Accion
+                  <th className="px-4 py-3 2xl:py-4 text-center bg-rojo text-xs font-medium text-white uppercase tracking-wider">
+                    Registrar Salida
                   </th>
                 </tr>
               </thead>
@@ -296,7 +296,7 @@ function Page() {
                       <td className="hidden lg:table-cell px-4 xl:py-1 2xl:py-4 text-sm text-gray-500">
                         {item.fechaIngreso}
                       </td>
-                      <td className="hidden lg:table-cell px-4 xl:py-1 2xl:py-4 text-sm text-gray-500">
+                      <td className="hidden lg:table-cell px-4 xl:py-1 2xl:py-4 text-sm text-gray-500 ">
                         {item.fechaSalida}
                       </td>
                       <td className="px-4 xl:py-1 2xl:py-4 whitespace-nowrap">
@@ -310,7 +310,7 @@ function Page() {
                         </span>
                       </td>
 
-                      <td className="px-4 py-1">
+                      <td className="px-4 py-1 text-center">
                         {item.estado === "terminado" ? (
                           <button
                             className="bg-zinc-800 text-white font-bold py-1 px-3 rounded"

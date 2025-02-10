@@ -1,6 +1,8 @@
 import { useAuth } from '../context/authContext';
 import { useState, useRef, useEffect } from 'react';
 import "@fortawesome/fontawesome-free"
+import Link from 'next/link';
+
 
 function Header({ onToggle }) {
     const { user, logout } = useAuth();
@@ -64,15 +66,19 @@ function Header({ onToggle }) {
                             className="py-2 hover:bg-gray-200 cursor-pointer flex gap-2 items-center px-2 rounded-md"
                             onClick={handleToggleModal} // Cierra el modal cuando se hace clic en "Perfil"
                         >
-                            <i className="fa-solid fa-user"></i>
-                            Perfil
+                            <Link
+                                href={user?.role === "administrador" ? "/auths/admin/perfil" : "/auths/seguridad/perfil"}
+                                className="w-full h-full"
+                            >
+                                <i className="fa-solid fa-user"></i> Perfil
+                            </Link>
                         </li>
                         <hr />
                         <li
                             className="py-2 hover:bg-gray-200 cursor-pointer flex gap-2 items-center px-2 rounded-md"
                             onClick={() => {
                                 logout && logout();
-                                handleToggleModal(); // Cierra el modal después de hacer logout
+                                handleToggleModal(); 
                             }}
                         >
                             <i className="fa-solid fa-arrow-right-from-bracket"></i>

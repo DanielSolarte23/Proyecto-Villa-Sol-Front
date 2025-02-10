@@ -135,7 +135,7 @@ function Page() {
         </div>
       </div>
       <div className="overflow-x-auto w-full h-[95%] flex flex-col justify-between">
-        <div className="mt-4 bg-white rounded-lg shadow-lg">
+        <div className="mt-4 2xl:mt-2 bg-white rounded-lg shadow-lg">
           <div className="overflow-x-auto rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-zinc-800">

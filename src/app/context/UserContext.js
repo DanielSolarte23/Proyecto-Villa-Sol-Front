@@ -1,15 +1,19 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, use } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { authContext } from "./authContext";
 
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
-    const [user, setUser] = useState([]);
+    const [users, setUsers] = useState([]); // Para todos los usuarios
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { user } = useContext(authContext);
+    const [perfil, setPerfil] = useState(null); // Para un solo usuario
 
+    // Cargar todos los usuarios
     const cargarUser = async () => {
         try {
             setLoading(true);
@@ -21,11 +25,10 @@ export function UserProvider({ children }) {
                 cedula: user.cedula,
                 telefono: user.phone,
                 username: user.username,
-                password: user.password,
                 role: user.role,
             }));
 
-            setUser(FormatoUser);
+            setUsers(FormatoUser); // Ahora guarda en users en lugar de perfil
         } catch (error) {
             setError('Error al cargar los usuarios');
             console.error('Error', error);
@@ -33,6 +36,33 @@ export function UserProvider({ children }) {
             setLoading(false);
         }
     }
+
+    // Cargar un usuario específico
+    const cargarUnUser = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`http://localhost:3004/api/users/${user.id}`);
+    
+            const FormatoUser = {
+                id: response.data.id,
+                name: response.data.name,
+                cedula: response.data.cedula,
+                telefono: response.data.phone,
+                username: response.data.username,
+                password: response.data.password,
+                role: response.data.role,
+            };
+    
+            setPerfil(FormatoUser); 
+
+        
+        } catch (error) {
+            setError('Error al cargar el usuario');
+            console.error('Error', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const agregarUser = async (nuevoUser) => {
         try {
@@ -45,8 +75,7 @@ export function UserProvider({ children }) {
                 password: nuevoUser.password,
                 role: nuevoUser.role,
             });
-            console.log('response', response);
-            await cargarUser();
+            await cargarUser(); // Recarga la lista de usuarios
             return { success: true, data: response.data };
         } catch (error) {
             setError('Error al agregar el usuario');
@@ -61,8 +90,10 @@ export function UserProvider({ children }) {
         try {
             setLoading(true);
             const response = await axios.put(`http://localhost:3004/api/users/${id}`, nuevoUser);
-            console.log('response', response);
-            await cargarUser();
+            await cargarUser(); // Recarga la lista de usuarios
+            if (id === user.id) {
+                await cargarUnUser(); // Si se actualizó el usuario actual, recarga su perfil
+            }
             return { success: true, data: response.data };
         } catch (error) {
             setError('Error al actualizar el usuario');
@@ -76,8 +107,7 @@ export function UserProvider({ children }) {
     const eliminarUser = async (id) => {
         try {
             const response = await axios.delete(`http://localhost:3004/api/users/${id}`);
-            console.log('response', response);
-            await cargarUser();
+            await cargarUser(); // Recarga la lista tras eliminar
             return { success: true, data: response.data };
         } catch (error) {
             setError('Error al eliminar el usuario');
@@ -89,13 +119,19 @@ export function UserProvider({ children }) {
     };
 
     useEffect(() => {
-        cargarUser();
-    }, []);
+        if (user?.role === 'administrador') {
+            cargarUser(); 
+        }
+        cargarUnUser();
+    }, [user]);
 
     const value = {
-        user,
+        users,    
+        perfil,      
         loading,
         error,
+        cargarUser, 
+        cargarUnUser,
         actualizarUser,
         agregarUser,
         eliminarUser,

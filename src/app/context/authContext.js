@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const authContext = createContext();
+export const authContext = createContext();
 
 // Crear instancia de axios con mejor manejo de errores
 const api = axios.create({
